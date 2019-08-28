@@ -51,7 +51,7 @@ namespace gazebo
                 std::cout<<"\033[1;32m Gimbal Yaw link exists : "<<this->gimbal_yaw_link->GetName()<<"\033[0m\n";
                 
                 ros::SubscribeOptions attitude_ops = ros::SubscribeOptions::create<geometry_msgs::QuaternionStamped>(
-                    "dji_sdk/attitude", 1000,
+                    this->model->GetName()+"/dji_sdk/attitude", 1000,
                     boost::bind(&DJI_ROS_ControlPlugin::attitudeCallback, this, _1),
                     ros::VoidPtr(), &this->callback_queue);
 
@@ -59,13 +59,13 @@ namespace gazebo
 
                 
                 ros::SubscribeOptions gps_position_ops = ros::SubscribeOptions::create<sensor_msgs::NavSatFix>(
-                    "dji_sdk/gps_position",1000,
+                    this->model->GetName()+"/dji_sdk/gps_position",1000,
                     boost::bind(&DJI_ROS_ControlPlugin::gpsCallback,this,_1),
                     ros::VoidPtr(),&this->callback_queue);
                 this->gps_position_subscriber = nh.subscribe(gps_position_ops);
 
                 ros::SubscribeOptions gimbal_ops = ros::SubscribeOptions::create<geometry_msgs::Vector3Stamped>(
-                    "dji_sdk/gimbal_angle", 1000,
+                    this->model->GetName()+"/dji_sdk/gimbal_angle", 1000,
                     boost::bind(&DJI_ROS_ControlPlugin::gimbalOrientationCallback, this, _1),
                     ros::VoidPtr(), &this->callback_queue);
                 this->gimbal_orientation_subscriber = nh.subscribe(gimbal_ops);
