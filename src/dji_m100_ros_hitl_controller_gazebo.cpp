@@ -47,6 +47,7 @@ namespace gazebo
                 this->base_link = model->GetLink();
                 std::string ns = _model->GetName();
                 this->gimbal_yaw_link = _model->GetLink("gimbal_yaw_link");
+                
 
                 std::cout<<"\033[1;32m Gimbal Yaw link exists : "<<this->gimbal_yaw_link->GetName()<<"\033[0m\n";
                 

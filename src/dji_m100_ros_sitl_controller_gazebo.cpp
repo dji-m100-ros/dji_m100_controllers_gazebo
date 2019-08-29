@@ -50,7 +50,6 @@ DJIM100HardwareSim::DJIM100HardwareSim() : DefaultRobotHWSim()
 
   wrench_output_ = body_interface_.addInput<WrenchCommandHandle>("wrench");
   motor_output_ = body_interface_.addInput<MotorCommandHandle>("motor");
-
 }
 
 DJIM100HardwareSim::~DJIM100HardwareSim()
@@ -65,8 +64,10 @@ bool DJIM100HardwareSim::initSim(
 {
   bool default_sim_ok = DefaultRobotHWSim::initSim(robot_namespace,model_nh,parent_model,urdf_model,transmissions);
   
-  model_ = parent_model;
-  link_ = model_->GetLink();
+  this->model_ = parent_model;
+  this->base_link_ = model_->GetLink();
+  this->battery_handle = base_link_->Battery("linear_battery");
+  this->initial_battery_level = this->battery_handle->Voltage();
 #if (GAZEBO_MAJOR_VERSION >= 8)
   physics_ = model_->GetWorld()->Physics();
 #else
@@ -81,9 +82,9 @@ bool DJIM100HardwareSim::initSim(
   model_nh.getParam("state_topic", state_topic);
   if (!state_topic.empty())
   {
-    odom_sub_helper_ = boost::make_shared<OdomSubscriberHelper>(model_nh, state_topic, boost::ref(pose_),
-                                                                boost::ref(twist_), boost::ref(acceleration_),
-                                                                boost::ref(header_));
+    this->odom_sub_helper_ = boost::make_shared<OdomSubscriberHelper>(model_nh, state_topic, boost::ref(this->pose_),
+                                                                boost::ref(this->twist_), boost::ref(this->acceleration_),
+                                                                boost::ref(this->header_));
     gzlog << "[hector_quadrotor_controller_gazebo] Using topic '" << state_topic << "' as state input for control" <<
     std::endl;
   }
@@ -98,7 +99,7 @@ bool DJIM100HardwareSim::initSim(
   model_nh.getParam("imu_topic", imu_topic);
   if (!imu_topic.empty())
   {
-    imu_sub_helper_ = boost::make_shared<ImuSubscriberHelper>(model_nh, imu_topic, boost::ref(imu_));
+    this->imu_sub_helper_ = boost::make_shared<ImuSubscriberHelper>(model_nh, imu_topic, boost::ref(this->imu_));
     gzlog << "[hector_quadrotor_controller_gazebo] Using topic '" << imu_topic << "' as imu input for control" <<
     std::endl;
   }
@@ -108,16 +109,16 @@ bool DJIM100HardwareSim::initSim(
     std::endl;
   }
 
-  motor_status_.on = true;
-  motor_status_.header.frame_id = base_link_frame_;
+  this->motor_status_.on = true;
+  this->motor_status_.header.frame_id = base_link_frame_;
 
-  enable_motors_server_ = model_nh.advertiseService("enable_motors", &DJIM100HardwareSim::enableMotorsCallback, this);
+  this->enable_motors_server_ = model_nh.advertiseService("enable_motors", &DJIM100HardwareSim::enableMotorsCallback, this);
 
-  wrench_limiter_.init(model_nh, "wrench_limits");
+  this->wrench_limiter_.init(model_nh, "wrench_limits");
 
-  wrench_command_publisher_ = model_nh.advertise<geometry_msgs::WrenchStamped>("command/wrench", 1);
-  motor_command_publisher_ = model_nh.advertise<geometry_msgs::WrenchStamped>("command/motor", 1);
-
+  this->wrench_command_publisher_ = model_nh.advertise<geometry_msgs::WrenchStamped>("command/wrench", 1);
+  this->motor_command_publisher_ = model_nh.advertise<geometry_msgs::WrenchStamped>("command/motor", 1);
+  this->battery_publisher_ = model_nh.advertise<std_msgs::Float64>("battery",1);
   return default_sim_ok;
 }
 
@@ -127,30 +128,30 @@ void DJIM100HardwareSim::readSim(ros::Time time, ros::Duration period)
   // read state from Gazebo
   const double acceleration_time_constant = 0.1;
 #if (GAZEBO_MAJOR_VERSION >= 8)
-  gz_acceleration_ = ((link_->WorldLinearVel() - gz_velocity_) + acceleration_time_constant * gz_acceleration_) /
+  gz_acceleration_ = ((base_link_->WorldLinearVel() - gz_velocity_) + acceleration_time_constant * gz_acceleration_) /
                      (period.toSec() + acceleration_time_constant);
   gz_angular_acceleration_ =
-      ((link_->WorldLinearVel() - gz_angular_velocity_) + acceleration_time_constant * gz_angular_acceleration_) /
+      ((base_link_->WorldLinearVel() - gz_angular_velocity_) + acceleration_time_constant * gz_angular_acceleration_) /
       (period.toSec() + acceleration_time_constant);
 
-  gz_pose_ = link_->WorldPose();
-  gz_velocity_ = link_->WorldLinearVel();
-  gz_angular_velocity_ = link_->WorldAngularVel();
+  gz_pose_ = base_link_->WorldPose();
+  gz_velocity_ = base_link_->WorldLinearVel();
+  gz_angular_velocity_ = base_link_->WorldAngularVel();
 #else
-  gz_acceleration_ = ((link_->GetWorldLinearVel() - gz_velocity_) + acceleration_time_constant * gz_acceleration_) /
+  gz_acceleration_ = ((base_link_->GetWorldLinearVel() - gz_velocity_) + acceleration_time_constant * gz_acceleration_) /
                      (period.toSec() + acceleration_time_constant);
   gz_angular_acceleration_ =
-      ((link_->GetWorldLinearVel() - gz_angular_velocity_) + acceleration_time_constant * gz_angular_acceleration_) /
+      ((base_link_->GetWorldLinearVel() - gz_angular_velocity_) + acceleration_time_constant * gz_angular_acceleration_) /
       (period.toSec() + acceleration_time_constant);
 
-  gz_pose_ = link_->GetWorldPose();
-  gz_velocity_ = link_->GetWorldLinearVel();
-  gz_angular_velocity_ = link_->GetWorldAngularVel();
+  gz_pose_ = base_link_->GetWorldPose();
+  gz_velocity_ = base_link_->GetWorldLinearVel();
+  gz_angular_velocity_ = base_link_->GetWorldAngularVel();
 #endif
 
   // Use when Gazebo patches accel = 0 bug
-//    gz_acceleration_ = link_->GetWorldLinearAccel();
-//    gz_angular_acceleration_ = link_->GetWorldAngularAccel();
+//    gz_acceleration_ = base_link_->GetWorldLinearAccel();
+//    gz_angular_acceleration_ = base_link_->GetWorldAngularAccel();
 
   if (!odom_sub_helper_)
   {
@@ -265,11 +266,11 @@ void DJIM100HardwareSim::writeSim(ros::Time time, ros::Duration period)
         gazebo::math::Vector3 torque(wrench.wrench.torque.x, wrench.wrench.torque.y, wrench.wrench.torque.z);
 #endif
         //ROS_INFO("Adding force: %lf,%lf,%lf",force.X(),force.Y(),force.Z());
-        link_->AddRelativeForce(force);
+        base_link_->AddRelativeForce(force);
 #if (GAZEBO_MAJOR_VERSION >= 8)
-        link_->AddRelativeTorque(torque - link_->GetInertial()->CoG().Cross(force));
+        base_link_->AddRelativeTorque(torque - base_link_->GetInertial()->CoG().Cross(force));
 #else
-        link_->AddRelativeTorque(torque - link_->GetInertial()->GetCoG().Cross(force));
+        base_link_->AddRelativeTorque(torque - base_link_->GetInertial()->GetCoG().Cross(force));
 #endif
       }
 
@@ -279,6 +280,9 @@ void DJIM100HardwareSim::writeSim(ros::Time time, ros::Duration period)
 
     wrench_command_publisher_.publish(wrench);
   }
+  std_msgs::Float64 battery_level;
+  battery_level.data = (this->battery_handle->Voltage() / (double)this->initial_battery_level)*100.0;
+  this->battery_publisher_.publish(battery_level);
 }
 
 bool DJIM100HardwareSim::enableMotorsCallback(hector_uav_msgs::EnableMotors::Request &req, hector_uav_msgs::EnableMotors::Response &res)

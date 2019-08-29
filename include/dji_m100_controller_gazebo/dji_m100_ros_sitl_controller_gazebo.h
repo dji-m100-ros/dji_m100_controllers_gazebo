@@ -11,8 +11,9 @@
 #include <sensor_msgs/Imu.h>
 #include <hector_uav_msgs/MotorStatus.h>
 #include <hector_uav_msgs/EnableMotors.h>
-#include <geometry_msgs/Vector3.h>
+#include <std_msgs/Float64.h>
 
+#include <gazebo/common/Battery.hh>
 namespace dji_m100_controller_gazebo_sitl
 {
 
@@ -56,8 +57,9 @@ private:
   std::string base_link_frame_, world_frame_;
 
   gazebo::physics::ModelPtr model_;
-  gazebo::physics::LinkPtr link_;
+  gazebo::physics::LinkPtr base_link_;
   gazebo::physics::PhysicsEnginePtr physics_;
+  gazebo::common::BatteryPtr battery_handle;
 
 #if (GAZEBO_MAJOR_VERSION >= 8)
   ignition::math::Pose3d gz_pose_;
@@ -70,8 +72,12 @@ private:
   boost::shared_ptr<hector_quadrotor_interface::ImuSubscriberHelper> imu_sub_helper_;
   boost::shared_ptr<hector_quadrotor_interface::OdomSubscriberHelper> odom_sub_helper_;
 
+  /* Only for debugging purposes. These echo the applied magnitudes and command. */
   ros::Publisher wrench_command_publisher_;
   ros::Publisher motor_command_publisher_;
+
+  double initial_battery_level;
+  ros::Publisher battery_publisher_;
   ros::ServiceServer enable_motors_server_;
 };
 
