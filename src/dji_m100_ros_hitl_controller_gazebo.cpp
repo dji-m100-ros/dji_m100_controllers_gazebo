@@ -48,9 +48,6 @@ namespace gazebo
                 std::string ns = _model->GetName();
                 this->gimbal_yaw_link = _model->GetLink("gimbal_yaw_link");
                 
-
-                std::cout<<"\033[1;32m Gimbal Yaw link exists : "<<this->gimbal_yaw_link->GetName()<<"\033[0m\n";
-                
                 ros::SubscribeOptions attitude_ops = ros::SubscribeOptions::create<geometry_msgs::QuaternionStamped>(
                     this->model->GetName()+"/dji_sdk/attitude", 1000,
                     boost::bind(&DJI_ROS_ControlPlugin::attitudeCallback, this, _1),

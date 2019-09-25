@@ -265,7 +265,6 @@ void DJIM100HardwareSim::writeSim(ros::Time time, ros::Duration period)
         gazebo::math::Vector3 force(wrench.wrench.force.x, wrench.wrench.force.y, wrench.wrench.force.z);
         gazebo::math::Vector3 torque(wrench.wrench.torque.x, wrench.wrench.torque.y, wrench.wrench.torque.z);
 #endif
-        //ROS_INFO("Adding force: %lf,%lf,%lf",force.X(),force.Y(),force.Z());
         base_link_->AddRelativeForce(force);
 #if (GAZEBO_MAJOR_VERSION >= 8)
         base_link_->AddRelativeTorque(torque - base_link_->GetInertial()->CoG().Cross(force));
