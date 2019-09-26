@@ -77,38 +77,6 @@ bool DJIM100HardwareSim::initSim(
   model_nh.param<std::string>("world_frame", world_frame_, "world");
   model_nh.param<std::string>("base_link_frame", base_link_frame_, "base_link");
 
-  // subscribe state
-  std::string state_topic;
-  model_nh.getParam("state_topic", state_topic);
-  if (!state_topic.empty())
-  {
-    this->odom_sub_helper_ = boost::make_shared<OdomSubscriberHelper>(model_nh, state_topic, boost::ref(this->pose_),
-                                                                boost::ref(this->twist_), boost::ref(this->acceleration_),
-                                                                boost::ref(this->header_));
-    gzlog << "[hector_quadrotor_controller_gazebo] Using topic '" << state_topic << "' as state input for control" <<
-    std::endl;
-  }
-  else
-  {
-    gzlog << "[hector_quadrotor_controller_gazebo] Using ground truth from Gazebo as state input for control" <<
-    std::endl;
-  }
-
-  // subscribe imu
-  std::string imu_topic;
-  model_nh.getParam("imu_topic", imu_topic);
-  if (!imu_topic.empty())
-  {
-    this->imu_sub_helper_ = boost::make_shared<ImuSubscriberHelper>(model_nh, imu_topic, boost::ref(this->imu_));
-    gzlog << "[hector_quadrotor_controller_gazebo] Using topic '" << imu_topic << "' as imu input for control" <<
-    std::endl;
-  }
-  else
-  {
-    gzlog << "[hector_quadrotor_controller_gazebo] Using ground truth from Gazebo as imu input for control" <<
-    std::endl;
-  }
-
   this->motor_status_.on = true;
   this->motor_status_.header.frame_id = base_link_frame_;
 
@@ -149,93 +117,81 @@ void DJIM100HardwareSim::readSim(ros::Time time, ros::Duration period)
   gz_angular_velocity_ = base_link_->GetWorldAngularVel();
 #endif
 
-  // Use when Gazebo patches accel = 0 bug
-//    gz_acceleration_ = base_link_->GetWorldLinearAccel();
-//    gz_angular_acceleration_ = base_link_->GetWorldAngularAccel();
-
-  if (!odom_sub_helper_)
-  {
-    header_.frame_id = world_frame_;
-    header_.stamp = time;
 #if (GAZEBO_MAJOR_VERSION >= 8)
-    pose_.position.x = gz_pose_.Pos().X();
-    pose_.position.y = gz_pose_.Pos().Y();
-    pose_.position.z = gz_pose_.Pos().Z();
-    pose_.orientation.w = gz_pose_.Rot().W();
-    pose_.orientation.x = gz_pose_.Rot().X();
-    pose_.orientation.y = gz_pose_.Rot().Y();
-    pose_.orientation.z = gz_pose_.Rot().Z();
-    twist_.linear.x = gz_velocity_.X();
-    twist_.linear.y = gz_velocity_.Y();
-    twist_.linear.z = gz_velocity_.Z();
-    twist_.angular.x = gz_angular_velocity_.X();
-    twist_.angular.y = gz_angular_velocity_.Y();
-    twist_.angular.z = gz_angular_velocity_.Z();
-    acceleration_.linear.x = gz_acceleration_.X();
-    acceleration_.linear.y = gz_acceleration_.Y();
-    acceleration_.linear.z = gz_acceleration_.Z();
-    acceleration_.angular.x = gz_angular_acceleration_.X();
-    acceleration_.angular.y = gz_angular_acceleration_.Y();
-    acceleration_.angular.z = gz_angular_acceleration_.Z();
+  pose_.position.x = gz_pose_.Pos().X();
+  pose_.position.y = gz_pose_.Pos().Y();
+  pose_.position.z = gz_pose_.Pos().Z();
+  pose_.orientation.w = gz_pose_.Rot().W();
+  pose_.orientation.x = gz_pose_.Rot().X();
+  pose_.orientation.y = gz_pose_.Rot().Y();
+  pose_.orientation.z = gz_pose_.Rot().Z();
+  twist_.linear.x = gz_velocity_.X();
+  twist_.linear.y = gz_velocity_.Y();
+  twist_.linear.z = gz_velocity_.Z();
+  twist_.angular.x = gz_angular_velocity_.X();
+  twist_.angular.y = gz_angular_velocity_.Y();
+  twist_.angular.z = gz_angular_velocity_.Z();
+  acceleration_.linear.x = gz_acceleration_.X();
+  acceleration_.linear.y = gz_acceleration_.Y();
+  acceleration_.linear.z = gz_acceleration_.Z();
+  acceleration_.angular.x = gz_angular_acceleration_.X();
+  acceleration_.angular.y = gz_angular_acceleration_.Y();
+  acceleration_.angular.z = gz_angular_acceleration_.Z();
 #else
-    pose_.position.x = gz_pose_.pos.x;
-    pose_.position.y = gz_pose_.pos.y;
-    pose_.position.z = gz_pose_.pos.z;
-    pose_.orientation.w = gz_pose_.rot.w;
-    pose_.orientation.x = gz_pose_.rot.x;
-    pose_.orientation.y = gz_pose_.rot.y;
-    pose_.orientation.z = gz_pose_.rot.z;
-    twist_.linear.x = gz_velocity_.x;
-    twist_.linear.y = gz_velocity_.y;
-    twist_.linear.z = gz_velocity_.z;
-    twist_.angular.x = gz_angular_velocity_.x;
-    twist_.angular.y = gz_angular_velocity_.y;
-    twist_.angular.z = gz_angular_velocity_.z;
-    acceleration_.linear.x = gz_acceleration_.x;
-    acceleration_.linear.y = gz_acceleration_.y;
-    acceleration_.linear.z = gz_acceleration_.z;
-    acceleration_.angular.x = gz_angular_acceleration_.x;
-    acceleration_.angular.y = gz_angular_acceleration_.y;
-    acceleration_.angular.z = gz_angular_acceleration_.z;
+  pose_.position.x = gz_pose_.pos.x;
+  pose_.position.y = gz_pose_.pos.y;
+  pose_.position.z = gz_pose_.pos.z;
+  pose_.orientation.w = gz_pose_.rot.w;
+  pose_.orientation.x = gz_pose_.rot.x;
+  pose_.orientation.y = gz_pose_.rot.y;
+  pose_.orientation.z = gz_pose_.rot.z;
+  twist_.linear.x = gz_velocity_.x;
+  twist_.linear.y = gz_velocity_.y;
+  twist_.linear.z = gz_velocity_.z;
+  twist_.angular.x = gz_angular_velocity_.x;
+  twist_.angular.y = gz_angular_velocity_.y;
+  twist_.angular.z = gz_angular_velocity_.z;
+  acceleration_.linear.x = gz_acceleration_.x;
+  acceleration_.linear.y = gz_acceleration_.y;
+  acceleration_.linear.z = gz_acceleration_.z;
+  acceleration_.angular.x = gz_angular_acceleration_.x;
+  acceleration_.angular.y = gz_angular_acceleration_.y;
+  acceleration_.angular.z = gz_angular_acceleration_.z;
 #endif
-  }
 
-  if (!imu_sub_helper_)
-  {
 #if (GAZEBO_MAJOR_VERSION >= 8)
-    imu_.orientation.w = gz_pose_.Rot().W();
-    imu_.orientation.x = gz_pose_.Rot().X();
-    imu_.orientation.y = gz_pose_.Rot().Y();
-    imu_.orientation.z = gz_pose_.Rot().Z();
+  imu_.orientation.w = gz_pose_.Rot().W();
+  imu_.orientation.x = gz_pose_.Rot().X();
+  imu_.orientation.y = gz_pose_.Rot().Y();
+  imu_.orientation.z = gz_pose_.Rot().Z();
 
-    ignition::math::Vector3d gz_angular_velocity_body = gz_pose_.Rot().RotateVectorReverse(gz_angular_velocity_);
-    imu_.angular_velocity.x = gz_angular_velocity_body.X();
-    imu_.angular_velocity.y = gz_angular_velocity_body.Y();
-    imu_.angular_velocity.z = gz_angular_velocity_body.Z();
+  ignition::math::Vector3d gz_angular_velocity_body = gz_pose_.Rot().RotateVectorReverse(gz_angular_velocity_);
+  imu_.angular_velocity.x = gz_angular_velocity_body.X();
+  imu_.angular_velocity.y = gz_angular_velocity_body.Y();
+  imu_.angular_velocity.z = gz_angular_velocity_body.Z();
 
-    ignition::math::Vector3d gz_linear_acceleration_body = gz_pose_.Rot().RotateVectorReverse(
-        gz_acceleration_ - model_->GetWorld()->Gravity());
-    imu_.linear_acceleration.x = gz_linear_acceleration_body.X();
-    imu_.linear_acceleration.y = gz_linear_acceleration_body.Y();
-    imu_.linear_acceleration.z = gz_linear_acceleration_body.Z();
+  ignition::math::Vector3d gz_linear_acceleration_body = gz_pose_.Rot().RotateVectorReverse(
+      gz_acceleration_ - model_->GetWorld()->Gravity());
+  imu_.linear_acceleration.x = gz_linear_acceleration_body.X();
+  imu_.linear_acceleration.y = gz_linear_acceleration_body.Y();
+  imu_.linear_acceleration.z = gz_linear_acceleration_body.Z();
 #else
-    imu_.orientation.w = gz_pose_.rot.w;
-    imu_.orientation.x = gz_pose_.rot.x;
-    imu_.orientation.y = gz_pose_.rot.y;
-    imu_.orientation.z = gz_pose_.rot.z;
+  imu_.orientation.w = gz_pose_.rot.w;
+  imu_.orientation.x = gz_pose_.rot.x;
+  imu_.orientation.y = gz_pose_.rot.y;
+  imu_.orientation.z = gz_pose_.rot.z;
 
-    gazebo::math::Vector3 gz_angular_velocity_body = gz_pose_.rot.RotateVectorReverse(gz_angular_velocity_);
-    imu_.angular_velocity.x = gz_angular_velocity_body.x;
-    imu_.angular_velocity.y = gz_angular_velocity_body.y;
-    imu_.angular_velocity.z = gz_angular_velocity_body.z;
+  gazebo::math::Vector3 gz_angular_velocity_body = gz_pose_.rot.RotateVectorReverse(gz_angular_velocity_);
+  imu_.angular_velocity.x = gz_angular_velocity_body.x;
+  imu_.angular_velocity.y = gz_angular_velocity_body.y;
+  imu_.angular_velocity.z = gz_angular_velocity_body.z;
 
-    gazebo::math::Vector3 gz_linear_acceleration_body = gz_pose_.rot.RotateVectorReverse(
-        gz_acceleration_ - physics_->GetGravity());
-    imu_.linear_acceleration.x = gz_linear_acceleration_body.x;
-    imu_.linear_acceleration.y = gz_linear_acceleration_body.y;
-    imu_.linear_acceleration.z = gz_linear_acceleration_body.z;
+  gazebo::math::Vector3 gz_linear_acceleration_body = gz_pose_.rot.RotateVectorReverse(
+      gz_acceleration_ - physics_->GetGravity());
+  imu_.linear_acceleration.x = gz_linear_acceleration_body.x;
+  imu_.linear_acceleration.y = gz_linear_acceleration_body.y;
+  imu_.linear_acceleration.z = gz_linear_acceleration_body.z;
 #endif
-  }
 }
 
 void DJIM100HardwareSim::writeSim(ros::Time time, ros::Duration period)

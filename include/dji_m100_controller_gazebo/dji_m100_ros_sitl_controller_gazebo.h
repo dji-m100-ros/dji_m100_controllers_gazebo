@@ -41,7 +41,6 @@ bool enableMotorsCallback(hector_uav_msgs::EnableMotors::Request &req, hector_ua
 private:
   bool enableMotors(bool enable);
 
-  std_msgs::Header header_;
   geometry_msgs::Pose pose_;
   geometry_msgs::Twist twist_;
   geometry_msgs::Accel acceleration_;
@@ -68,10 +67,6 @@ private:
   gazebo::math::Pose gz_pose_;
   gazebo::math::Vector3 gz_velocity_, gz_acceleration_, gz_angular_velocity_, gz_angular_acceleration_;
 #endif
-
-  boost::shared_ptr<hector_quadrotor_interface::ImuSubscriberHelper> imu_sub_helper_;
-  boost::shared_ptr<hector_quadrotor_interface::OdomSubscriberHelper> odom_sub_helper_;
-
   /* Only for debugging purposes. These echo the applied magnitudes and command. */
   ros::Publisher wrench_command_publisher_;
   ros::Publisher motor_command_publisher_;
