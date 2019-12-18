@@ -47,7 +47,7 @@ namespace gazebo
                 this->base_link = model->GetLink();
                 std::string ns = _model->GetName();
                 this->gimbal_yaw_link = _model->GetLink("gimbal_yaw_link");
-                
+
                 ros::SubscribeOptions attitude_ops = ros::SubscribeOptions::create<geometry_msgs::QuaternionStamped>(
                     this->model->GetName()+"/dji_sdk/attitude", 1000,
                     boost::bind(&DJI_ROS_ControlPlugin::attitudeCallback, this, _1),
@@ -55,7 +55,7 @@ namespace gazebo
 
                 this->attitude_subscriber = nh.subscribe(attitude_ops);
 
-                
+
                 ros::SubscribeOptions gps_position_ops = ros::SubscribeOptions::create<sensor_msgs::NavSatFix>(
                     this->model->GetName()+"/dji_sdk/gps_position",1000,
                     boost::bind(&DJI_ROS_ControlPlugin::gpsCallback,this,_1),
@@ -80,17 +80,18 @@ namespace gazebo
                         boost::bind(&DJI_ROS_ControlPlugin::contactCallback,this,_1),
                         ros::VoidPtr(),&this->callback_queue);
                     this->contact_subscriber = nh.subscribe(contact_ops);
-                }    
-                
-                this->spherical_coordinates_handle = this->world->SphericalCoords();
-                
-                
+                }
+                #if GAZEBO_MAJOR_VERSION >= 8
+                    this->spherical_coordinates_handle = this->world->SphericalCoords();
+                #else
+                    this->spherical_coordinates_handle = this->world->GetSphericalCoordinates();
+                #endif
                 this->reset();
                 this->update_connection = event::Events::ConnectWorldUpdateBegin(boost::bind(&DJI_ROS_ControlPlugin::OnUpdate,this));
             }
             void attitudeCallback(const geometry_msgs::QuaternionStamped::ConstPtr& quat_msg)
             {
-                #if GAZEBO_MAJOR_VERSION >= 8 
+                #if GAZEBO_MAJOR_VERSION >= 8
                     this->base_orientation.W() = quat_msg->quaternion.w;
                     this->base_orientation.X() = -quat_msg->quaternion.x;
                     this->base_orientation.Y() = -quat_msg->quaternion.y;
@@ -108,7 +109,7 @@ namespace gazebo
                 double lon = gps_msg->longitude;
                 double alt = gps_msg->altitude;
                 math::Vector3d local_position = this->spherical_coordinates_handle->LocalFromSpherical(math::Vector3d(lat,lon,alt));
-                
+
                 #if GAZEBO_MAJOR_VERSION >= 8
                    this->base_position.Set(-local_position.X(),-local_position.Y(),local_position.Z());
                 #else
@@ -142,7 +143,7 @@ namespace gazebo
                 int num_of_contacts = contact_msg->states.size();
                 if(num_of_contacts)//Pause the simulation
                 {
-                    
+
                     this->contact = true;
                     std::cout<<"\033[1;31m Contact information :"<<contact_msg->states[0].info<<"\033[0m\n";
                 }
@@ -163,12 +164,15 @@ namespace gazebo
                 #endif
                 double dt = (sim_time - this->last_time).Double();
                 if (dt == 0.0) return;
-                
-                
+
                 // save last time stamp
-                this->last_time = sim_time;  
+                this->last_time = sim_time;
                 this->base_orientation.Normalize();
-                math::Pose3d target_pose;
+                #if GAZEBO_MAJOR_VERSION >= 8
+                    math::Pose3d target_pose;
+                #else
+                    math::Pose3 target_pose;
+                #endif
                 target_pose.Set(this->base_position,this->base_orientation);
                 this->world->SetPaused(true);
                 this->model->SetWorldPose(target_pose);
@@ -177,7 +181,7 @@ namespace gazebo
                     math::Pose3d gimbal_pose = this->gimbal_yaw_link->RelativePose();
                     gimbal_pose.Set(gimbal_pose.Pos(),this->gimbal_orientation);
                 #else
-                    math::Pose3d gimbal_pose = this->gimbal_yaw_link->GetRelativePose();
+                    math::Pose3 gimbal_pose = this->gimbal_yaw_link->GetRelativePose();
                     gimbal_pose.Set(gimbal_pose.pos,this->gimbal_orientation);
                 #endif
                 this->model->SetLinearVel(math::Vector3d(0,0,0));
@@ -192,14 +196,19 @@ namespace gazebo
             common::SphericalCoordinatesPtr spherical_coordinates_handle;
             event::ConnectionPtr update_connection;
 
-            math::Quaterniond base_orientation;
-            math::Vector3d base_position;
-            math::Vector3d gimbal_orientation;
-            
+            #if (GAZEBO_MAJOR_VERSION >= 8)
+                math::Vector3d base_position;
+                math::Vector3d gimbal_orientation;
+                math::Quaterniond base_orientation;
+            #else
+                math::Vector3 base_position;
+                math::Vector3 gimbal_orientation;
+                math::Quaternion base_orientation;
+            #endif
             ros::Subscriber attitude_subscriber;
             ros::Subscriber gps_position_subscriber;
             ros::Subscriber gimbal_orientation_subscriber;
-            
+
             ros::Subscriber contact_subscriber;
             bool contact = false;
             bool contact_allowed = false;
