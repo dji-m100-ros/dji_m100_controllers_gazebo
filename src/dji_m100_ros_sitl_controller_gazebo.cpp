@@ -26,7 +26,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <dji_m100_controller_gazebo/dji_m100_ros_sitl_controller_gazebo.h>
+#include <dji_m100_controllers_gazebo/dji_m100_ros_sitl_controller_gazebo.h>
 
 #include <geometry_msgs/WrenchStamped.h>
 
