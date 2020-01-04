@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(dji_m100_controllers_gazebo)
 
-	
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp 
+  roscpp
   std_msgs
   sensor_msgs
   visualization_msgs
@@ -19,7 +18,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} /usr/include/gazebo-9/)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES dji_m100_controller_gazebo_sitl
-  CATKIN_DEPENDS roscpp 
+  CATKIN_DEPENDS roscpp
   std_msgs
   sensor_msgs
   visualization_msgs
@@ -46,10 +45,6 @@ install(TARGETS dji_m100_controller_gazebo_sitl
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
-
-add_executable(cylinder_publisher src/cylinder_publisher.cpp)
-target_link_libraries(cylinder_publisher ${catkin_LIBRARIES})
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
