@@ -1,18 +1,21 @@
 body_position_controller:
     type: hector_quadrotor_controllers/PositionController
     x: &pos_xy
-        p: 2.0
-        i: 0.0
+        p: 0.75
+        i: 2.0
         d: 0.0
+        publish_state: true
     y: *pos_xy
     z:
         p: 2.0
         i: 0.0
-        d: 0.0
+        d: 2.0
+        publish_state: true
     yaw:
         p: 2.0
         i: 0.0
         d: 0.0
+        publish_state: true
 body_velocity_controller:
     type: hector_quadrotor_controllers/VelocityController
     max_xy: 10.0 # m/s
