@@ -63,7 +63,7 @@ bool DJIM100HardwareSim::initSim(
     std::vector<transmission_interface::TransmissionInfo> transmissions)
 {
   bool default_sim_ok = DefaultRobotHWSim::initSim(robot_namespace,model_nh,parent_model,urdf_model,transmissions);
-  
+
   this->model_ = parent_model;
   this->base_link_ = model_->GetLink();
   this->battery_handle = base_link_->Battery("linear_battery");
@@ -87,9 +87,40 @@ bool DJIM100HardwareSim::initSim(
   this->wrench_command_publisher_ = model_nh.advertise<geometry_msgs::WrenchStamped>("command/wrench", 1);
   this->motor_command_publisher_ = model_nh.advertise<geometry_msgs::WrenchStamped>("command/motor", 1);
   this->battery_publisher_ = model_nh.advertise<std_msgs::Float64>("battery",1);
+
+  auto plugin = this->model_->GetSDF()->GetElement("plugin");
+  while(plugin->GetAttribute("name")->GetAsString() != "sitl_controller"){
+    plugin = plugin->GetNextElement();
+  }
+  if (plugin->HasElement("allow_contact_sensing")){
+    this->contact_allowed = plugin->GetElement("allow_contact_sensing")->Get<bool>();
+  }
+  if(this->contact_allowed)
+  {
+    this->contact_subscriber_ = nh.subscribe<gazebo_msgs::ContactsState>(this->model_->GetName()+"/contact",
+        1,boost::bind(&DJIM100HardwareSim::contactCallback,this,_1));
+  }
   return default_sim_ok;
 }
+void DJIM100HardwareSim::contactCallback(const gazebo_msgs::ContactsState::ConstPtr& contact_msg)
+{
+    if(!motor_status_.running){
+      return ;
+    }
+    if(pose_.position.z > 0.3){
+      took_off = true;
+    }
 
+    if(took_off){
+      int num_of_contacts = contact_msg->states.size();
+      if(num_of_contacts)//Pause the simulation
+      {
+
+          this->contact = true;
+          std::cout<<"\033[1;31m Contact information :"<<contact_msg->states[0].info<<"\033[0m\n";
+      }
+    }
+}
 void DJIM100HardwareSim::readSim(ros::Time time, ros::Duration period)
 {
   DefaultRobotHWSim::readSim(time,period);
@@ -196,6 +227,12 @@ void DJIM100HardwareSim::readSim(ros::Time time, ros::Duration period)
 
 void DJIM100HardwareSim::writeSim(ros::Time time, ros::Duration period)
 {
+  //Early check for contact
+  if(this->contact)
+  {
+      this->model_->GetWorld()->SetPaused(true);
+      return;
+  }
   DefaultRobotHWSim::writeSim(time,period);
   bool result_written = false;
 

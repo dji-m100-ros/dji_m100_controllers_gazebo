@@ -1,16 +1,18 @@
 #ifndef DJI_M100_CONTROLLER_HARDWARE_GAZEBO_H
 #define DJI_M100_CONTROLLER_HARDWARE_GAZEBO_H
 
+#include <ros/callback_queue.h>
 #include <ros/node_handle.h>
 #include <gazebo_ros_control/default_robot_hw_sim.h>
 #include <hector_quadrotor_interface/quadrotor_interface.h>
 #include <hector_quadrotor_interface/helpers.h>
 #include <hector_quadrotor_interface/limiters.h>
 
+#include <hector_uav_msgs/EnableMotors.h>
+#include <hector_uav_msgs/MotorStatus.h>
+#include <gazebo_msgs/ContactsState.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/Imu.h>
-#include <hector_uav_msgs/MotorStatus.h>
-#include <hector_uav_msgs/EnableMotors.h>
 #include <std_msgs/Float64.h>
 
 #include <gazebo/common/Battery.hh>
@@ -40,7 +42,7 @@ bool enableMotorsCallback(hector_uav_msgs::EnableMotors::Request &req, hector_ua
 
 private:
   bool enableMotors(bool enable);
-
+  void contactCallback(const gazebo_msgs::ContactsState::ConstPtr& contact_msg);
   geometry_msgs::Pose pose_;
   geometry_msgs::Twist twist_;
   geometry_msgs::Accel acceleration_;
@@ -74,6 +76,13 @@ private:
   double initial_battery_level;
   ros::Publisher battery_publisher_;
   ros::ServiceServer enable_motors_server_;
+  ros::Subscriber contact_subscriber_;
+
+  bool contact_allowed = false;
+  bool contact = false;
+  bool took_off = false;
+  ros::CallbackQueue callback_queue_;
+  ros::NodeHandle nh;
 };
 
 } // namespace dji_m100_controller_gazebo
