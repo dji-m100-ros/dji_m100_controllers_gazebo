@@ -7,14 +7,14 @@ joint_state_controller:
 gimbal_roll_controller:
   type: effort_controllers/JointPositionController
   joint: gimbal_roll_joint
-  pid: {p: 100.0, i: 5, d: 7.0}
+  pid: {p: 0.3, i: 0.0, d: 0.0001}
 
 gimbal_pitch_controller:
   type: effort_controllers/JointPositionController
   joint: gimbal_pitch_joint
-  pid: {p: 100.0, i: 5, d: 7.0}
+  pid: {p: 0.3, i: 0.0, d: 0.0001}
 
 gimbal_yaw_controller:
   type: effort_controllers/JointPositionController
   joint: gimbal_yaw_joint
-  pid: {p: 100.0, i: 5, d: 7.0}
+  pid: {p: 0.3, i: 0.0, d: 0.0001}
